@@ -1,127 +1,47 @@
 ﻿<Window
-    x:Class="Socket_tool.MainWindow"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:Custom="http://metro.mahapps.com/winfx/xaml/controls"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="clr-namespace:sock_tool"
-    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    Title="MainWindow"
-    Width="500"
-    Height="650"
-    MinWidth="500"
-    MinHeight="650"
-    MaxWidth="500"
-    MaxHeight="650"
-    Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}"
-    BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}"
-    FontFamily="{DynamicResource MaterialDesignFont}"
-    Foreground="#DDE0E0E0"
-    TextElement.FontSize="13"
-    TextElement.FontWeight="Regular"
-    TextElement.Foreground="{DynamicResource MaterialDesignBody}"
-    TextOptions.TextFormattingMode="Ideal"
-    TextOptions.TextRenderingMode="Auto"
-    mc:Ignorable="d">
-    <Grid>
-        <Button
-            x:Name="start_server"
-            Width="115"
-            Margin="10,102,0,0"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Top"
-            Click="start_server_Click"
-            Content="建立服务器" />
-        <Button
-            x:Name="disconnect"
-            Width="115"
-            Margin="10,159,0,0"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Top"
-            Click="disconnect_Click"
-            Content="断开" />
-        <TextBlock
-            x:Name="textBlock"
-            Margin="10,64,0,0"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Top"
-            Text="端口:"
-            TextWrapping="Wrap" />
-        <TextBox
-            x:Name="port_text"
-            Width="120"
-            Height="23"
-            Margin="44,57,0,0"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Top"
-            KeyDown="port_text_KeyDown"
-            TextChanged="port_text_TextChanged"
-            TextWrapping="Wrap" />
-        <Border
-            Name="box_top"
-            Margin="208,111.333,10,251"
-            BorderBrush="#FF8973C3"
-            BorderThickness="1"
-            CornerRadius="5,5,5,5">
-            <Border.Effect>
-                <DropShadowEffect
-                    Direction="360"
-                    RenderingBias="Quality"
-                    ShadowDepth="1" />
-            </Border.Effect>
-            <Border
-                Height="33"
-                Margin="-1,-1,-1,0"
-                VerticalAlignment="Top"
-                Background="#FF6E289E"
-                BorderBrush="White"
-                BorderThickness="0"
-                CornerRadius="5,5,0,0">
-                <TextBlock
-                    x:Name="textBlock1"
-                    Margin="9,9,9,-1"
-                    Foreground="#DDFFFFFF"
-                    Text="接收数据"
-                    TextWrapping="Wrap" />
-                <Border.Effect>
-                    <DropShadowEffect
-                        Direction="270"
-                        RenderingBias="Quality"
-                        ShadowDepth="1"
-                        Color="White" />
-                </Border.Effect>
-            </Border>
-        </Border>
-        <GroupBox
-            x:Name="groupBox1"
-            Width="274"
-            Height="236"
-            Margin="208,373,0,0"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Top"
-            Header="发送数据">
-            <TextBlock
-                x:Name="send_block"
-                Width="279"
-                Height="186"
-                Margin="0,0,0,-2"
-                VerticalAlignment="Top"
-                TextWrapping="Wrap" />
-        </GroupBox>
-        <GroupBox
-            x:Name="groupBox2"
-            Width="193"
-            Height="390"
-            Margin="10,219,0,0"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Top"
-            Header="客户端">
-            <ListBox
-                x:Name="client_list"
-                Width="163"
-                Height="335"
-                VerticalAlignment="Top" />
-        </GroupBox>
-    </Grid>
+  x:Class="Socket_tool.MainWindow"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:Custom="http://metro.mahapps.com/winfx/xaml/controls"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:local="clr-namespace:Socket_tool"
+  xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  Title="MainWindow"
+  Width="500"
+  Height="650"
+  MinWidth="500"
+  MinHeight="650"
+  MaxWidth="500"
+  MaxHeight="650"
+  Background="{DynamicResource MaterialDesignPaper}"
+  FontFamily="{DynamicResource MaterialDesignFont}"
+  Foreground="#DDE0E0E0"
+  TextElement.FontSize="13"
+  TextElement.FontWeight="Regular"
+  TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+  TextOptions.TextFormattingMode="Ideal"
+  TextOptions.TextRenderingMode="Auto"
+  mc:Ignorable="d">
+  <Grid>
+    <Button
+      x:Name="button"
+      Width="75"
+      Margin="50,65,0,0"
+      HorizontalAlignment="Left"
+      VerticalAlignment="Top"
+      materialDesign:ShadowAssist.ShadowDepth="Depth3"
+      Click="button_Click"
+      Content="Button" />
+    <Button
+      x:Name="button1"
+      Width="75"
+      Margin="50,113,0,0"
+      HorizontalAlignment="Left"
+      VerticalAlignment="Top"
+      Click="button1_Click"
+      Content="Button" />
+    <Grid Name="data_exchange" Margin="200,50,10,10" />
+    <Grid Name="client_grid" Margin="10,180,297,10" />
+  </Grid>
 </Window>
