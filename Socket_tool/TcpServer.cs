@@ -27,7 +27,7 @@ namespace WpfApplication1
         public IOContextPool receiveContextPool;
         public IOContextPool sendContextPool;
         private BlockingCollection<MessageData> sendingQueue;
-        private Thread sendMessageWorker;
+        // private Thread sendMessageWorker;
         public List<Socket> serverList;
         private AutoResetEvent waitSendEvent;
 
@@ -44,7 +44,7 @@ namespace WpfApplication1
             this.serverList = new List<Socket>(this.numConnections);
 
             sendingQueue = new BlockingCollection<MessageData>();
-            sendMessageWorker = new Thread(new ThreadStart(SendQueueMessage));
+            // sendMessageWorker = new Thread(new ThreadStart(SendQueueMessage));
 
             for (Int32 i = 0; i < this.numConnections; i++)
             {
@@ -77,7 +77,8 @@ namespace WpfApplication1
             this.listenSocket.Bind(localEndPoint);
             this.listenSocket.Listen(this.numConnections);
 
-            sendMessageWorker.Start();
+            // sendMessageWorker.Start();
+            SendQueueMessage();
 
             this.StartAccept(null);
         }
@@ -233,17 +234,21 @@ namespace WpfApplication1
             }
         }
 
-        private void SendQueueMessage()
+        private async void SendQueueMessage()
         {
             log.Info("send queue msg!");
-            while (true)
+            await Task.Run(() =>
             {
-                var message = sendingQueue.Take();
-                if (message != null)
+
+                while (true)
                 {
-                    SendMessage(message);
+                    var message = sendingQueue.Take();
+                    if (message != null)
+                    {
+                        SendMessage(message);
+                    }
                 }
-            }
+            });
         }
 
         private void SendMessage(MessageData message)
