@@ -71,7 +71,7 @@ namespace WpfApplication1
             if (server.receiveContextPool.boundary > 0)
             {
                 SocketAsyncEventArgs arg = server.receiveContextPool.Get(server.receiveContextPool.boundary);
-                server.Send(arg, input.Text);
+                server.Send((Socket)arg.UserToken, input.Text);
             }
         }
     }

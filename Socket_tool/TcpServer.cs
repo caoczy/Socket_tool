@@ -27,7 +27,7 @@ namespace WpfApplication1
         public IOContextPool receiveContextPool;
         public IOContextPool sendContextPool;
         private BlockingCollection<MessageData> sendingQueue;
-
+        public List<Socket> clientList;
         private AutoResetEvent waitSendEvent;
 
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
@@ -40,6 +40,7 @@ namespace WpfApplication1
             this.bufferSize = bufferSize;
             this.receiveContextPool = new IOContextPool(numConnections);
             this.sendContextPool = new IOContextPool(numConnections);
+            this.clientList = new List<Socket>(numConnections);
 
             sendingQueue = new BlockingCollection<MessageData>();
 
@@ -111,6 +112,7 @@ namespace WpfApplication1
                     if (ioContext != null)
                     {
                         ioContext.UserToken = s;
+                        clientList.Add(s);
                         // 原子操作++
                         Interlocked.Increment(ref this.numConnectedSockets);
                         if (!s.ReceiveAsync(ioContext))
@@ -161,7 +163,6 @@ namespace WpfApplication1
 
         private void ProcessReceive(SocketAsyncEventArgs e)
         {
-            log.Info("process receive!");
             if (e.BytesTransferred > 0)
             {
                 if (e.SocketError == SocketError.Success)
@@ -190,7 +191,6 @@ namespace WpfApplication1
 
         private void ProcessSend(SocketAsyncEventArgs e)
         {
-            log.Info("process send!");
             sendContextPool.Add(e);
             waitSendEvent.Set();
         }
@@ -228,7 +228,6 @@ namespace WpfApplication1
 
         private async void SendQueueMessage()
         {
-            log.Info("send queue msg!");
             await Task.Run(() =>
             {
 
@@ -245,7 +244,6 @@ namespace WpfApplication1
 
         private void SendMessage(MessageData message)
         {
-            log.Info("SendMsg!");
             var e = sendContextPool.Pop();
             if(e != null)
             {
@@ -256,31 +254,24 @@ namespace WpfApplication1
             }
             else
             {
-                log.Info("sendpool else");
                 waitSendEvent.WaitOne();
                 SendMessage(message);
             }
         }
 
-        private void ProcessMessage(byte[] msg,SocketAsyncEventArgs e)
+        private void ProcessMessage(byte[] msg,Socket s)
         {
-            log.Info("ProcessMessage!");
-            Socket s = e.UserToken as Socket;
             sendingQueue.Add(new MessageData { msg = msg, socket = s });
-            ProcessSend(e);
         }
 
-        public void Send(SocketAsyncEventArgs e,string message)
+        public void Send(Socket s,string message)
         {
-            log.Info("Send. " + message);
-            if (e != null)
+            if (s != null)
             {
-                Socket s = e.UserToken as Socket;
                 byte[] buf = Encoding.Default.GetBytes(message);
-                log.Info(Encoding.Default.GetString(e.Buffer.Take(buf.Length).ToArray()));
-                // e.SetBuffer(e.Offset, buf.Length * 2);
+
                 log.Info(s.RemoteEndPoint);
-                ProcessMessage(buf, e);
+                ProcessMessage(buf,s);
             }
         }
     }
