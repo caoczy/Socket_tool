@@ -27,8 +27,7 @@ namespace WpfApplication1
         public IOContextPool receiveContextPool;
         public IOContextPool sendContextPool;
         private BlockingCollection<MessageData> sendingQueue;
-        // private Thread sendMessageWorker;
-        public List<Socket> serverList;
+
         private AutoResetEvent waitSendEvent;
 
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
@@ -41,10 +40,8 @@ namespace WpfApplication1
             this.bufferSize = bufferSize;
             this.receiveContextPool = new IOContextPool(numConnections);
             this.sendContextPool = new IOContextPool(numConnections);
-            this.serverList = new List<Socket>(this.numConnections);
 
             sendingQueue = new BlockingCollection<MessageData>();
-            // sendMessageWorker = new Thread(new ThreadStart(SendQueueMessage));
 
             for (Int32 i = 0; i < this.numConnections; i++)
             {
@@ -52,15 +49,12 @@ namespace WpfApplication1
                 receiveContext.Completed += new EventHandler<SocketAsyncEventArgs>(OnIOCompleted);
                 receiveContext.SetBuffer(new Byte[this.bufferSize], 0, this.bufferSize);
                 this.receiveContextPool.Add(receiveContext);
-            }
-            for (Int32 i = 0; i < this.numConnections; i++)
-            {
+
                 SocketAsyncEventArgs sendContext = new SocketAsyncEventArgs();
                 sendContext.Completed += new EventHandler<SocketAsyncEventArgs>(OnIOCompleted);
                 sendContext.SetBuffer(new Byte[this.bufferSize], 0, this.bufferSize);
                 this.sendContextPool.Add(sendContext);
             }
-
             waitSendEvent = new AutoResetEvent(false);
         }
 
@@ -77,7 +71,6 @@ namespace WpfApplication1
             this.listenSocket.Bind(localEndPoint);
             this.listenSocket.Listen(this.numConnections);
 
-            // sendMessageWorker.Start();
             SendQueueMessage();
 
             this.StartAccept(null);
@@ -120,7 +113,6 @@ namespace WpfApplication1
                         ioContext.UserToken = s;
                         // 原子操作++
                         Interlocked.Increment(ref this.numConnectedSockets);
-                        serverList.Add(s);
                         if (!s.ReceiveAsync(ioContext))
                         {
                             this.ProcessReceive(ioContext);
@@ -134,11 +126,11 @@ namespace WpfApplication1
                 }
                 catch (SocketException ex)
                 {
-
+                    log.Error(ex.Message);
                 }
                 catch (Exception ex)
                 {
-
+                    log.Error(ex.Message);
                 }
 
                 this.StartAccept(e);
@@ -177,7 +169,7 @@ namespace WpfApplication1
                     Socket s = (Socket)e.UserToken;
 
                     byte[] buf = e.Buffer.Take(e.BytesTransferred).ToArray();
-                    log.Info(Encoding.Default.GetString(buf));
+                    log.Info("receive: " + Encoding.Default.GetString(buf));
 
                     e.SetBuffer(e.Offset,e.BytesTransferred * 2);
                     if (!s.ReceiveAsync(e))
