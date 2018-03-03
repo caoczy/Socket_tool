@@ -1,78 +1,62 @@
-﻿using log4net;
-using log4net.Config;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
+﻿using System.Net.Sockets;
 using System.Reflection;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using log4net;
 
-namespace WpfApplication1
+namespace Socket_tool
 {
     /// <summary>
-    /// MainWindow.xaml 的交互逻辑
+    ///     MainWindow.xaml 的交互逻辑
     /// </summary>
+    /// <inheritdoc>
+    /// </inheritdoc>
     public partial class MainWindow : Window
     {
-        TcpServer server;
-        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        internal static MainWindow Main;
+        private readonly TcpServer _server;
+        private Socket _curSocket;
+
         public MainWindow()
         {
-            InitializeComponent();
-            server = new TcpServer(1024, 2048);
-        }
-
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            // serverList.Items.Add("hello");
-            Task.Factory.StartNew(() =>
-            {
-                // Thread.Sleep(5000);
-                int i = 0;
-                while (true)
-                {
-                    this.Dispatcher.BeginInvoke(
-                        (Action)(() =>
-                        {
-                            serverList.Items.Add(i.ToString());
-                        }));
-                    Thread.Sleep(5000);
-                    i++;
-                }
-            });
+            this.InitializeComponent();
+            Main = this;
+            this._server = new TcpServer(1024, 2048);
+            this._curSocket = null;
         }
 
         private void StartServer(object sender, RoutedEventArgs e)
         {
-
-            server.Start(8000);
-            
+            this._server.Start(8000);
         }
 
         private void StopServer(object sender, RoutedEventArgs e)
         {
-            server.Stop();
+            this._server.Stop();
         }
 
         private void SendMessage(object sender, RoutedEventArgs e)
         {
-            log.Info("send message.");
-            if (server.receiveContextPool.boundary > 0)
+            Log.Info("send message.");
+            if (this._curSocket == null)
             {
-                SocketAsyncEventArgs arg = server.receiveContextPool.Get(server.receiveContextPool.boundary);
-                server.Send((Socket)arg.UserToken, input.Text);
+                return;
             }
+            this._server.Send(this._curSocket, this.Input.Text);
+            this.Input.Text = "";
+        }
+
+        private void ServerTree_SelectedItemChanged(object sender, RoutedEventArgs e)
+        {
+            var node = this.ServerTree.SelectedItem as TreeNodeItem;
+            if (node == null)
+            {
+                Log.Info("node is null!");
+                return;
+            }
+
+            Log.Info(node.DisplayName);
+            this._curSocket = node.Client;
         }
     }
 }

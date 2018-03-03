@@ -1,80 +1,164 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using log4net;
-using System.Reflection;
-using log4net.Config;
-using System.Collections.Concurrent;
 
-namespace WpfApplication1
+namespace Socket_tool
 {
-    class MessageData
+    internal class MessageData
     {
-        public Socket socket;
-        public byte[] msg;
+        public byte[] Msg;
+        public Socket SocketFd;
     }
-    class TcpServer
+
+    internal class TcpServer
     {
-        private Socket listenSocket;
-        private Int32 bufferSize;
-        private Int32 numConnectedSockets;
-        private Int32 numConnections;
-        public IOContextPool receiveContextPool;
-        public IOContextPool sendContextPool;
-        private BlockingCollection<MessageData> sendingQueue;
-        public List<Socket> clientList;
-        private AutoResetEvent waitSendEvent;
+        private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        private readonly int _bufferSize;
 
-        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        private readonly MainWindow _main;
+        private readonly int _numConnections;
+        private readonly BlockingCollection<MessageData> _sendingQueue;
+        private readonly ObservableCollection<TreeNodeItem> _serverListTree;
+        private readonly AutoResetEvent _waitSendEvent;
 
-        public TcpServer(Int32 numConnections, Int32 bufferSize)
+        private Socket _listenSocket;
+        private int _numConnectedSockets;
+        private int _serverIndex;
+        public IoContextPool ReceiveContextPool;
+        public IoContextPool SendContextPool;
+
+        public delegate void MainDispatcherInvoke();
+
+        public TcpServer(int numConnections, int bufferSize)
         {
+            this._numConnectedSockets = 0;
+            this._numConnections = numConnections;
+            this._bufferSize = bufferSize;
+            this.ReceiveContextPool = new IoContextPool(numConnections);
+            this.SendContextPool = new IoContextPool(numConnections);
+            this._serverListTree = new ObservableCollection<TreeNodeItem>();
+            this._sendingQueue = new BlockingCollection<MessageData>();
+            this._serverIndex = -1;
+            this._main = MainWindow.Main;
 
-            this.numConnectedSockets = 0;
-            this.numConnections = numConnections;
-            this.bufferSize = bufferSize;
-            this.receiveContextPool = new IOContextPool(numConnections);
-            this.sendContextPool = new IOContextPool(numConnections);
-            this.clientList = new List<Socket>(numConnections);
-
-            sendingQueue = new BlockingCollection<MessageData>();
-
-            for (Int32 i = 0; i < this.numConnections; i++)
+            for (var i = 0; i < this._numConnections; i++)
             {
-                SocketAsyncEventArgs receiveContext = new SocketAsyncEventArgs();
-                receiveContext.Completed += new EventHandler<SocketAsyncEventArgs>(OnIOCompleted);
-                receiveContext.SetBuffer(new Byte[this.bufferSize], 0, this.bufferSize);
-                this.receiveContextPool.Add(receiveContext);
+                var receiveContext = new SocketAsyncEventArgs();
+                receiveContext.Completed += this.OnIoCompleted;
+                receiveContext.SetBuffer(new byte[this._bufferSize], 0, this._bufferSize);
+                this.ReceiveContextPool.Add(receiveContext);
 
-                SocketAsyncEventArgs sendContext = new SocketAsyncEventArgs();
-                sendContext.Completed += new EventHandler<SocketAsyncEventArgs>(OnIOCompleted);
-                sendContext.SetBuffer(new Byte[this.bufferSize], 0, this.bufferSize);
-                this.sendContextPool.Add(sendContext);
+                var sendContext = new SocketAsyncEventArgs();
+                sendContext.Completed += this.OnIoCompleted;
+                sendContext.SetBuffer(new byte[this._bufferSize], 0, this._bufferSize);
+                this.SendContextPool.Add(sendContext);
             }
-            waitSendEvent = new AutoResetEvent(false);
+
+            this._waitSendEvent = new AutoResetEvent(false);
         }
 
-        public void Start(Int32 port)
+        public void Start(int port)
         {
-            log.Info("start server.");
+            Log.Info("start server.");
 
-            IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Parse("0.0.0.0"), port);
+            var localEndPoint = new IPEndPoint(IPAddress.Parse("0.0.0.0"), port);
+            try
+            {
+                this._listenSocket = new Socket(localEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            }
+            catch (SocketException ex)
+            {
+                Log.Info(ex.Message);
+                return;
+            }
 
-            this.listenSocket = new Socket(localEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            this.listenSocket.ReceiveBufferSize = this.bufferSize;
-            this.listenSocket.SendBufferSize = this.bufferSize;
+            this._listenSocket.ReceiveBufferSize = this._bufferSize;
+            this._listenSocket.SendBufferSize = this._bufferSize;
 
-            this.listenSocket.Bind(localEndPoint);
-            this.listenSocket.Listen(this.numConnections);
-
-            SendQueueMessage();
+            this._listenSocket.Bind(localEndPoint);
+            this._listenSocket.Listen(this._numConnections);
+            this.AddServerToTree(this._listenSocket);
+            this.SendQueueMessage();
 
             this.StartAccept(null);
+        }
+
+        private void DispatcherInvokeFunc(MainDispatcherInvoke func)
+        {
+            this._main.Dispatcher.BeginInvoke(func);
+        }
+
+        private void AddServerToTree(Socket s)
+        {
+            Interlocked.Increment(ref this._serverIndex);
+            this.DispatcherInvokeFunc(delegate
+            {
+                var newChild = new TreeNodeItem
+                {
+                    DisplayName = s.LocalEndPoint.ToString(),
+                    Name = s.LocalEndPoint.ToString(),
+                    Server = s
+                };
+                lock (this._serverListTree)
+                {
+                    this._serverListTree.Add(newChild);
+                    this._main.ServerTree.ItemsSource = this._serverListTree;
+                }
+            });
+
+        }
+
+        private void AddClientToTree(Socket client)
+        {
+            Log.Info("Add client to tree!");
+            this.DispatcherInvokeFunc(delegate
+            {
+                var newChild = new TreeNodeItem
+                {
+                    DisplayName = client.RemoteEndPoint.ToString(),
+                    Name = client.RemoteEndPoint.ToString(),
+                    Client = client
+                };
+                lock (this._serverListTree)
+                {
+                    this._serverListTree[this._serverIndex].Children.Add(newChild);
+                }
+            });
+        }
+
+        private void RemoveClientFromTree(Socket s)
+        {
+            this.DispatcherInvokeFunc(delegate
+            {
+                lock (this._serverListTree)
+                {
+                    for (var i = 0; i < this._serverListTree[this._serverIndex].Children.Count; i++)
+                    {
+                        var node = this._serverListTree[this._serverIndex].Children[i];
+                        if (node.Client == s)
+                        {
+                            this._serverListTree[this._serverIndex].Children.Remove(node);
+                        }
+                    }
+                }
+            });
+        }
+
+        private void AppendRecvToTextBlock(byte[] msg)
+        {
+            var text = Encoding.Default.GetString(msg);
+            this.DispatcherInvokeFunc(delegate
+            {
+                this._main.Output.Text += text + "\n";
+            });
         }
 
         private void StartAccept(SocketAsyncEventArgs e)
@@ -82,14 +166,14 @@ namespace WpfApplication1
             if (e == null)
             {
                 e = new SocketAsyncEventArgs();
-                e.Completed += new EventHandler<SocketAsyncEventArgs>(OnAcceptCompleted);
+                e.Completed += this.OnAcceptCompleted;
             }
             else
             {
                 e.AcceptSocket = null;
             }
 
-            if (!this.listenSocket.AcceptAsync(e))
+            if (!this._listenSocket.AcceptAsync(e))
             {
                 this.ProcessAccept(e);
             }
@@ -102,52 +186,52 @@ namespace WpfApplication1
 
         private void ProcessAccept(SocketAsyncEventArgs e)
         {
-            Socket s = e.AcceptSocket;
+            var s = e.AcceptSocket;
 
-            if (s.Connected)
+            if (!s.Connected)
             {
-                try
-                {
-                    SocketAsyncEventArgs ioContext = this.receiveContextPool.Pop();
-                    if (ioContext != null)
-                    {
-                        ioContext.UserToken = s;
-                        clientList.Add(s);
-                        // 原子操作++
-                        Interlocked.Increment(ref this.numConnectedSockets);
-                        if (!s.ReceiveAsync(ioContext))
-                        {
-                            this.ProcessReceive(ioContext);
-                        }
-                    }
-                    else
-                    {
-                        s.Send(Encoding.Default.GetBytes("连接已经达到最大数!"));
-                        s.Close();
-                    }
-                }
-                catch (SocketException ex)
-                {
-                    log.Error(ex.Message);
-                }
-                catch (Exception ex)
-                {
-                    log.Error(ex.Message);
-                }
-
-                this.StartAccept(e);
+                Log.Info("AcceptSocket not connected!");
+                return;
             }
 
+            try
+            {
+                var ioContext = this.ReceiveContextPool.Pop();
+                if (ioContext != null)
+                {
+                    ioContext.UserToken = s;
+                    this.AddClientToTree(s);
+                    // 原子操作++
+                    Interlocked.Increment(ref this._numConnectedSockets);
+                    if (!s.ReceiveAsync(ioContext))
+                    {
+                        this.ProcessReceive(ioContext);
+                    }
+                }
+                else
+                {
+                    s.Send(Encoding.Default.GetBytes("连接已经达到最大数!"));
+                    s.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message);
+                return;
+            }
+
+            this.StartAccept(e);
         }
 
         public void Stop()
         {
-            this.listenSocket.Close();
+            Log.Info("Stop server!");
+            this._listenSocket.Close();
         }
 
-        private void OnIOCompleted(object sender, SocketAsyncEventArgs e)
+        private void OnIoCompleted(object sender, SocketAsyncEventArgs e)
         {
-            log.Info("OnIOCompleted!");
+            Log.Info("OnIOCompleted!");
             switch (e.LastOperation)
             {
                 case SocketAsyncOperation.Receive:
@@ -157,25 +241,26 @@ namespace WpfApplication1
                     this.ProcessSend(e);
                     break;
                 default:
-                    throw new ArgumentException("The last operation completed on the socket was not a receive or send.");
+                    throw new ArgumentException(
+                        "The last operation completed on the socket was not a receive or send.");
             }
         }
 
         private void ProcessReceive(SocketAsyncEventArgs e)
         {
-            if (e.BytesTransferred > 0)
+            while (e.BytesTransferred > 0)
             {
                 if (e.SocketError == SocketError.Success)
                 {
-                    Socket s = (Socket)e.UserToken;
+                    var s = (Socket) e.UserToken;
 
-                    byte[] buf = e.Buffer.Take(e.BytesTransferred).ToArray();
-                    log.Info("receive: " + Encoding.Default.GetString(buf));
-
-                    e.SetBuffer(e.Offset,e.BytesTransferred * 2);
-                    if (!s.ReceiveAsync(e))
+                    var buf = e.Buffer.Take(e.BytesTransferred).ToArray();
+                    Log.Info("receive: " + Encoding.Default.GetString(buf));
+                    this.AppendRecvToTextBlock(buf);
+                    e.SetBuffer(e.Offset, e.BytesTransferred * 2);
+                    if (s.ReceiveAsync(e))
                     {
-                        this.ProcessReceive(e);
+                        return;
                     }
                 }
                 else
@@ -183,60 +268,49 @@ namespace WpfApplication1
                     this.ProcessError(e);
                 }
             }
-            else
-            {
-                this.CloseClientSocket(e);
-            }
+
+            this.CloseClientSocket(e);
         }
 
         private void ProcessSend(SocketAsyncEventArgs e)
         {
-            sendContextPool.Add(e);
-            waitSendEvent.Set();
+            this.SendContextPool.Add(e);
+            this._waitSendEvent.Set();
         }
 
         private void ProcessError(SocketAsyncEventArgs e)
         {
-            Socket s = (Socket)e.UserToken;
-            IPEndPoint localEp = (IPEndPoint)s.LocalEndPoint;
-
+            var s = (Socket) e.UserToken;
             this.CloseClientSocket(s, e);
-
         }
 
         private void CloseClientSocket(SocketAsyncEventArgs e)
         {
-            Socket s = (Socket)e.UserToken;
+            var s = (Socket) e.UserToken;
+            this.RemoveClientFromTree(s);
             this.CloseClientSocket(s, e);
         }
 
         private void CloseClientSocket(Socket s, SocketAsyncEventArgs e)
         {
+            Log.Info("CloseClientSocket!");
             // 原子操作--
-            Interlocked.Decrement(ref this.numConnectedSockets);
+            Interlocked.Decrement(ref this._numConnectedSockets);
 
-            this.receiveContextPool.Push(e);
-            try
-            {
-                s.Shutdown(SocketShutdown.Send);
-            }
-            finally
-            {
-                s.Close();
-            }
+            this.ReceiveContextPool.Push(e);
+            s.Close();
         }
 
         private async void SendQueueMessage()
         {
             await Task.Run(() =>
             {
-
                 while (true)
                 {
-                    var message = sendingQueue.Take();
+                    var message = this._sendingQueue.Take();
                     if (message != null)
                     {
-                        SendMessage(message);
+                        this.SendMessage(message);
                     }
                 }
             });
@@ -244,35 +318,42 @@ namespace WpfApplication1
 
         private void SendMessage(MessageData message)
         {
-            var e = sendContextPool.Pop();
-            if(e != null)
+            while (true)
             {
-                log.Info("send: " + Encoding.Default.GetString(message.msg));
-                e.SetBuffer(message.msg, 0, message.msg.Length);
-                e.UserToken = message.socket;
-                message.socket.SendAsync(e);
-            }
-            else
-            {
-                waitSendEvent.WaitOne();
-                SendMessage(message);
+                var e = this.SendContextPool.Pop();
+                if (e != null)
+                {
+                    Log.Info("send: " + Encoding.Default.GetString(message.Msg));
+                    e.SetBuffer(message.Msg, 0, message.Msg.Length);
+                    e.UserToken = message.SocketFd;
+                    message.SocketFd.SendAsync(e);
+                    break;
+                }
+
+                this._waitSendEvent.WaitOne();
             }
         }
 
-        private void ProcessMessage(byte[] msg,Socket s)
+        private void ProcessMessage(byte[] msg, Socket s)
         {
-            sendingQueue.Add(new MessageData { msg = msg, socket = s });
+            this._sendingQueue.Add(new MessageData
+            {
+                Msg = msg,
+                SocketFd = s
+            });
         }
 
-        public void Send(Socket s,string message)
+        public void Send(Socket s, string message)
         {
-            if (s != null)
+            if (s == null)
             {
-                byte[] buf = Encoding.Default.GetBytes(message);
-
-                log.Info(s.RemoteEndPoint);
-                ProcessMessage(buf,s);
+                return;
             }
+
+            var buf = Encoding.Default.GetBytes(message);
+
+            Log.Info(s.RemoteEndPoint);
+            this.ProcessMessage(buf, s);
         }
     }
 }
