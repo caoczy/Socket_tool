@@ -3,22 +3,60 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:socketTool="clr-namespace:Socket_tool"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
-  <Grid>
-    <Button Content="开启" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="43,235,0,0" Width="75" Click="StartServer"></Button>
-    <Button Content="停止" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="43,203,0,0" Width="75" Click="StopServer"/>
-    <TextBox Name="Input" HorizontalAlignment="Left" Height="35" Margin="32,25,0,0" TextWrapping="Wrap"  VerticalAlignment="Top" Width="171" />
-    <TextBox Name="Output" HorizontalAlignment="Left" Height="35" Margin="32,99,0,0" TextWrapping="Wrap"  VerticalAlignment="Top" Width="171" />
-    <Button Content="发送" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="219,32,0,0" Width="75" Click="SendMessage"/>
-    <TreeView Name="ServerTree" HorizontalAlignment="Left" Height="195" Margin="323,32,0,0" VerticalAlignment="Top" Width="186" SelectedItemChanged="ServerTree_SelectedItemChanged" >
-      <TreeView.ItemTemplate>
-        <HierarchicalDataTemplate DataType="{x:Type socketTool:TreeNodeItem}" ItemsSource="{Binding Path=Children}" >
-          <TextBlock VerticalAlignment="Center" Text="{Binding DisplayName}" Foreground="Black" FontSize="14" />
-        </HierarchicalDataTemplate>
-      </TreeView.ItemTemplate>
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        TextOptions.TextFormattingMode="Ideal" 
+        TextOptions.TextRenderingMode="Auto"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="Arial,Microsoft YaHei"
+        Title="MainWindow" Height="522.667" Width="735.667">
+  <Grid Margin="10,10,14.333,9">
+    <Button Content="发送" 
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom" 
+            Margin="0,0,610,33.333" Width="75" Click="SendMessage" RenderTransformOrigin="0.484,0.479"/>
+    <StackPanel Margin="502,70,5,4.333" Background="{DynamicResource PrimaryHueLightBrush}">
+      <TreeView Name="ServerTree" Margin="5,5,4.667,5" SelectedItemChanged="ServerTree_SelectedItemChanged" Height="389">
+        <TreeView.ItemContainerStyle>
+          <Style>
+            <Setter Property="TreeViewItem.IsExpanded" Value="True"/>
+          </Style>
+        </TreeView.ItemContainerStyle>
+        <TreeView.ItemTemplate>
+          <HierarchicalDataTemplate DataType="{x:Type socketTool:TreeNodeItem}" ItemsSource="{Binding Path=Children}" >
+            <TextBlock VerticalAlignment="Center" Text="{Binding DisplayName}" Foreground="Black" FontSize="14" />
+          </HierarchicalDataTemplate>
+        </TreeView.ItemTemplate>
+      </TreeView>
+    </StackPanel>
 
-    </TreeView>
+    <materialDesign:PopupBox 
+      Style="{StaticResource MaterialDesignMultiFloatingActionPopupBox}"
+      PlacementMode="TopAndAlignCentres"
+      ToolTip="Add"
+      HorizontalAlignment="Right"
+      VerticalAlignment="Bottom" 
+      Margin="0,0,430,10"
+      Background="{DynamicResource PrimaryHueMidBrush}">
+      <StackPanel Orientation="Horizontal">
+        <Button ToolTip="AddTCPServer" Click="AddTcpServer">TCP</Button>
+      </StackPanel>
+    </materialDesign:PopupBox>
+    <StackPanel Margin="10,10,208,88.333">
+      <TextBox Name="Output" Style="{StaticResource MaterialDesignTextAreaTextBox}"
+               Margin="10" Height="150"
+               VerticalAlignment="Top" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" materialDesign:HintAssist.Hint="Recv data"/>
+      <TextBox Name="Input"  Style="{StaticResource MaterialDesignTextAreaTextBox}"
+               Margin="10" Height="150"
+               VerticalAlignment="Top" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" 
+               materialDesign:HintAssist.Hint="Send data"/>
+      <CheckBox x:Name="EnableHex" 
+                IsChecked="False"/>
+    </StackPanel>
+    <Label Content="服务器列表:" HorizontalAlignment="Left" Margin="533,39,0,0" VerticalAlignment="Top" Width="102" Height="26"/>
   </Grid>
 </Window>

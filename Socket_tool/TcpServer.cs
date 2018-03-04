@@ -67,7 +67,7 @@ namespace Socket_tool
 
         public void Start(int port)
         {
-            Log.Info("start server.");
+            // Log.Info("start server.");
 
             var localEndPoint = new IPEndPoint(IPAddress.Parse("0.0.0.0"), port);
             try
@@ -101,15 +101,20 @@ namespace Socket_tool
             Interlocked.Increment(ref this._serverIndex);
             this.DispatcherInvokeFunc(delegate
             {
-                var newChild = new TreeNodeItem
-                {
-                    DisplayName = s.LocalEndPoint.ToString(),
-                    Name = s.LocalEndPoint.ToString(),
-                    Server = s
-                };
+                //var newChild = new TreeNodeItem
+                //{
+                //    DisplayName = s.LocalEndPoint.ToString(),
+                //    Name = s.LocalEndPoint.ToString(),
+                //    Server = s
+                //};
                 lock (this._serverListTree)
                 {
-                    this._serverListTree.Add(newChild);
+                    this._serverListTree.Add(new TreeNodeItem
+                    {
+                        DisplayName = s.LocalEndPoint.ToString(),
+                        Name = s.LocalEndPoint.ToString(),
+                        Server = s
+                    });
                     this._main.ServerTree.ItemsSource = this._serverListTree;
                 }
             });
@@ -118,18 +123,17 @@ namespace Socket_tool
 
         private void AddClientToTree(Socket client)
         {
-            Log.Info("Add client to tree!");
+            // Log.Info("Add client to tree!");
             this.DispatcherInvokeFunc(delegate
             {
-                var newChild = new TreeNodeItem
-                {
-                    DisplayName = client.RemoteEndPoint.ToString(),
-                    Name = client.RemoteEndPoint.ToString(),
-                    Client = client
-                };
                 lock (this._serverListTree)
                 {
-                    this._serverListTree[this._serverIndex].Children.Add(newChild);
+                    this._serverListTree[this._serverIndex].Children.Add(new TreeNodeItem
+                    {
+                        DisplayName = client.RemoteEndPoint.ToString(),
+                        Name = client.RemoteEndPoint.ToString(),
+                        Client = client,
+                    });
                 }
             });
         }
@@ -190,7 +194,7 @@ namespace Socket_tool
 
             if (!s.Connected)
             {
-                Log.Info("AcceptSocket not connected!");
+                // Log.Info("AcceptSocket not connected!");
                 return;
             }
 
@@ -210,6 +214,7 @@ namespace Socket_tool
                 }
                 else
                 {
+                    // Log.InfoFormat("error: 连接最大数 {0}",this._numConnectedSockets);
                     s.Send(Encoding.Default.GetBytes("连接已经达到最大数!"));
                     s.Close();
                 }
@@ -225,13 +230,13 @@ namespace Socket_tool
 
         public void Stop()
         {
-            Log.Info("Stop server!");
+            // Log.Info("Stop server!");
             this._listenSocket.Close();
         }
 
         private void OnIoCompleted(object sender, SocketAsyncEventArgs e)
         {
-            Log.Info("OnIOCompleted!");
+            // Log.Info("OnIOCompleted!");
             switch (e.LastOperation)
             {
                 case SocketAsyncOperation.Receive:
@@ -255,7 +260,7 @@ namespace Socket_tool
                     var s = (Socket) e.UserToken;
 
                     var buf = e.Buffer.Take(e.BytesTransferred).ToArray();
-                    Log.Info("receive: " + Encoding.Default.GetString(buf));
+                    // Log.Info("receive: " + Encoding.Default.GetString(buf));
                     this.AppendRecvToTextBlock(buf);
                     e.SetBuffer(e.Offset, e.BytesTransferred * 2);
                     if (s.ReceiveAsync(e))
@@ -293,7 +298,7 @@ namespace Socket_tool
 
         private void CloseClientSocket(Socket s, SocketAsyncEventArgs e)
         {
-            Log.Info("CloseClientSocket!");
+            // Log.Info("CloseClientSocket!");
             // 原子操作--
             Interlocked.Decrement(ref this._numConnectedSockets);
 
@@ -323,7 +328,7 @@ namespace Socket_tool
                 var e = this.SendContextPool.Pop();
                 if (e != null)
                 {
-                    Log.Info("send: " + Encoding.Default.GetString(message.Msg));
+                    // Log.Info("send: " + Encoding.Default.GetString(message.Msg));
                     e.SetBuffer(message.Msg, 0, message.Msg.Length);
                     e.UserToken = message.SocketFd;
                     message.SocketFd.SendAsync(e);
@@ -352,7 +357,7 @@ namespace Socket_tool
 
             var buf = Encoding.Default.GetBytes(message);
 
-            Log.Info(s.RemoteEndPoint);
+            // Log.Info(s.RemoteEndPoint);
             this.ProcessMessage(buf, s);
         }
     }

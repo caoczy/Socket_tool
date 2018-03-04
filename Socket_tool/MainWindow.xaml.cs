@@ -21,18 +21,9 @@ namespace Socket_tool
         {
             this.InitializeComponent();
             Main = this;
-            this._server = new TcpServer(1024, 2048);
+            this._server = new TcpServer(4096, 2048);
             this._curSocket = null;
-        }
-
-        private void StartServer(object sender, RoutedEventArgs e)
-        {
-            this._server.Start(8000);
-        }
-
-        private void StopServer(object sender, RoutedEventArgs e)
-        {
-            this._server.Stop();
+            this.EnableHex.Content = "启用16进制";
         }
 
         private void SendMessage(object sender, RoutedEventArgs e)
@@ -40,6 +31,7 @@ namespace Socket_tool
             Log.Info("send message.");
             if (this._curSocket == null)
             {
+                this.Input.Text = "请选择一个客户端";
                 return;
             }
             this._server.Send(this._curSocket, this.Input.Text);
@@ -57,6 +49,10 @@ namespace Socket_tool
 
             Log.Info(node.DisplayName);
             this._curSocket = node.Client;
+        }
+        private void AddTcpServer(object sender, RoutedEventArgs e)
+        {
+            this._server.Start(8000);
         }
     }
 }
