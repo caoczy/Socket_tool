@@ -13,7 +13,8 @@
         TextOptions.TextRenderingMode="Auto"
         Background="{DynamicResource MaterialDesignPaper}"
         FontFamily="Arial,Microsoft YaHei"
-        Title="MainWindow" Height="522.667" Width="735.667">
+        Title="MainWindow" Height="522.667" Width="735.667"
+        Closing="Window_Closing">
   <Grid Margin="10,10,14.333,9">
     <Button Content="发送" 
             HorizontalAlignment="Right"
@@ -21,6 +22,10 @@
             Margin="0,0,610,33.333" Width="75" Click="SendMessage" RenderTransformOrigin="0.484,0.479"/>
     <StackPanel Margin="502,70,5,4.333" Background="{DynamicResource PrimaryHueLightBrush}">
       <TreeView Name="ServerTree" Margin="5,5,4.667,5" SelectedItemChanged="ServerTree_SelectedItemChanged" Height="389">
+        <TreeView.Resources>
+          <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}"
+                      Color="#569AC2" />
+        </TreeView.Resources>
         <TreeView.ItemContainerStyle>
           <Style>
             <Setter Property="TreeViewItem.IsExpanded" Value="True"/>
@@ -28,7 +33,13 @@
         </TreeView.ItemContainerStyle>
         <TreeView.ItemTemplate>
           <HierarchicalDataTemplate DataType="{x:Type socketTool:TreeNodeItem}" ItemsSource="{Binding Path=Children}" >
-            <TextBlock VerticalAlignment="Center" Text="{Binding DisplayName}" Foreground="Black" FontSize="14" />
+            <TextBlock VerticalAlignment="Center" Text="{Binding DisplayName}" Foreground="Black" FontSize="14" >
+              <TextBlock.ContextMenu>
+                <ContextMenu>
+                  <MenuItem Header ="Close" Click="MenuItem_Click"></MenuItem>
+                </ContextMenu>
+              </TextBlock.ContextMenu>
+            </TextBlock>
           </HierarchicalDataTemplate>
         </TreeView.ItemTemplate>
       </TreeView>

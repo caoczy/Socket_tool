@@ -113,7 +113,8 @@ namespace Socket_tool
                     {
                         DisplayName = s.LocalEndPoint.ToString(),
                         Name = s.LocalEndPoint.ToString(),
-                        Server = s
+                        Server = s,
+                        IsServer = true
                     });
                     this._main.ServerTree.ItemsSource = this._serverListTree;
                 }
@@ -133,6 +134,7 @@ namespace Socket_tool
                         DisplayName = client.RemoteEndPoint.ToString(),
                         Name = client.RemoteEndPoint.ToString(),
                         Client = client,
+                        IsServer = false
                     });
                 }
             });

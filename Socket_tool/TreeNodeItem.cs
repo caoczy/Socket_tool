@@ -8,6 +8,7 @@ namespace Socket_tool
         public int IndexId { get; set; }
         public string DisplayName { get; set; }
         public string Name { get; set; }
+        public bool IsServer { get; set; }
 
         public Socket Server { get; set; }
         public Socket Client { get; set; }
