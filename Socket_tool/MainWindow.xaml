@@ -13,7 +13,9 @@
         TextOptions.TextRenderingMode="Auto"
         Background="{DynamicResource MaterialDesignPaper}"
         FontFamily="Arial,Microsoft YaHei"
-        Title="MainWindow" Height="522.667" Width="735.667"
+        Title="MainWindow" Height="522" Width="735"
+        MinHeight="522" MinWidth="735"
+        MaxHeight="522" MaxWidth="735"
         Closing="Window_Closing">
   <Grid Margin="10,10,14.333,9">
     <Button Content="发送" 
@@ -58,13 +60,18 @@
       </StackPanel>
     </materialDesign:PopupBox>
     <StackPanel Margin="10,10,208,88.333">
-      <TextBox Name="Output" Style="{StaticResource MaterialDesignTextAreaTextBox}"
+            <GroupBox Margin="2" Header="Recv" Style="{StaticResource MaterialDesignGroupBox}">
+                <TextBlock Name="Output" Style="{StaticResource MaterialDesignBody1TextBlock}"
                Margin="10" Height="150"
-               VerticalAlignment="Top" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" materialDesign:HintAssist.Hint="Recv data"/>
-      <TextBox Name="Input"  Style="{StaticResource MaterialDesignTextAreaTextBox}"
+               VerticalAlignment="Top" TextWrapping="Wrap" materialDesign:HintAssist.Hint="Recv data"/>
+            </GroupBox>
+            <GroupBox Margin="2" Header="Send" Style="{StaticResource MaterialDesignGroupBox}">
+                <TextBox Name="Input"  Style="{StaticResource MaterialDesignTextBox}"
                Margin="10" Height="150"
                VerticalAlignment="Top" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" 
-               materialDesign:HintAssist.Hint="Send data"/>
+               />
+            </GroupBox>
+            
       <CheckBox x:Name="EnableHex" 
                 IsChecked="False"/>
     </StackPanel>
